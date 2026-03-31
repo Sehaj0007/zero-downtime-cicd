@@ -2,35 +2,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
+  name: myapp-dev       
   labels:
-    app: myapp
+    app: myapp-dev      
 spec:
   replicas: 3
 
-  # Rolling update strategy — replace pods one at a time
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1   # At most 1 pod down during update
-      maxSurge: 1         # At most 1 extra pod spun up during update
+      maxUnavailable: 1
+      maxSurge: 1
 
   selector:
     matchLabels:
-      app: myapp
+      app: myapp-dev   
 
   template:
     metadata:
       labels:
-        app: myapp
+        app: myapp-dev 
     spec:
       containers:
         - name: myapp
-          image: sehaj07/myapp:latest   # Jenkins will replace 'latest' with BUILD_NUMBER
+          image: sehaj07/myapp:latest
           ports:
             - containerPort: 3000
 
-          # Liveness probe — restarts the container if the app crashes
           livenessProbe:
             httpGet:
               path: /health
@@ -39,9 +37,6 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
 
-          # Readiness probe — if this fails, K8s stops routing traffic to the
-          # pod AND halts the rolling update, preventing a bad deploy from
-          # spreading. This is how automatic rollback is triggered.
           readinessProbe:
             httpGet:
               path: /health
@@ -63,13 +58,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp-service
+  name: myapp-dev-service 
 spec:
   selector:
-    app: myapp
+    app: myapp-dev        
   type: NodePort
   ports:
     - protocol: TCP
-      port: 80           # Service port (internal cluster)
-      targetPort: 3000   # Container port
-      nodePort: 30080    # Access from your Windows host: http://localhost:30080
+      port: 80
+      targetPort: 3000
+      nodePort: 30080
