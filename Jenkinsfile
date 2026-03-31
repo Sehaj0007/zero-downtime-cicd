@@ -63,14 +63,14 @@ pipeline {
 
                     // Update the image — Kubernetes performs the rolling update automatically
                     bat """
-                        kubectl set image deployment/myapp ^
+                        kubectl set image deployment/myapp-dev ^
                           myapp=${IMAGE_NAME}:${IMAGE_TAG} ^
                           --record
                     """
 
                     // Wait for the rollout to complete (timeout: 2 minutes)
                     // If it times out, the pipeline fails and you can rollback manually.
-                    bat "kubectl rollout status deployment/myapp --timeout=120s"
+                    bat "kubectl rollout status deployment/myapp-dev --timeout=120s"
                 }
             }
         }
@@ -99,22 +99,22 @@ pipeline {
                Image : ${IMAGE_NAME}:${IMAGE_TAG}
                App   : http://localhost:30080
                Check revision history with:
-                 kubectl rollout history deployment/myapp
+                 kubectl rollout history deployment/myapp-dev
             """
         }
 
         failure {
             echo "❌ Pipeline failed — triggering automatic rollback to previous version"
             // Roll back to the last known-good revision
-            bat "kubectl rollout undo deployment/myapp"
+            bat "kubectl rollout undo deployment/myapp-dev"
             // Confirm rollback completed
-            bat "kubectl rollout status deployment/myapp --timeout=60s"
+            bat "kubectl rollout status deployment/myapp-dev --timeout=60s"
             echo """
             ⏪ Rolled back successfully.
                To roll back to a specific revision:
-                 kubectl rollout undo deployment/myapp --to-revision=<N>
+                 kubectl rollout undo deployment/myapp-dev --to-revision=<N>
                To see all revisions:
-                 kubectl rollout history deployment/myapp
+                 kubectl rollout history deployment/myapp-dev
             """
         }
 
