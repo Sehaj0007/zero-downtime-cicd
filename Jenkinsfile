@@ -9,7 +9,8 @@ pipeline {
         DOCKERHUB_USERNAME = 'sehaj07'
         IMAGE_NAME         = "${DOCKERHUB_USERNAME}/myapp"
         IMAGE_TAG          = "${BUILD_NUMBER}"            // e.g. 12, 13, 14…
-        KUBECONFIG         = 'C:\\Users\\SehajPreet\\.kube\\config'
+        // Explicitly defining the path to your working config
+        KUBECONFIG_PATH    = 'C:\\Users\\SehajPreet\\.kube\\config'
     }
 
     stages {
@@ -61,16 +62,15 @@ pipeline {
                 script {
                     echo "Triggering rolling update → ${IMAGE_NAME}:${IMAGE_TAG}"
 
-                    // Update the image — Kubernetes performs the rolling update automatically
+                    // Added --kubeconfig flag to bypass Jenkins service user isolation
                     bat """
-                        kubectl set image deployment/myapp-dev ^
+                        kubectl --kubeconfig="${KUBECONFIG_PATH}" set image deployment/myapp-dev ^
                           myapp=${IMAGE_NAME}:${IMAGE_TAG} ^
                           --record
                     """
 
-                    // Wait for the rollout to complete (timeout: 2 minutes)
-                    // If it times out, the pipeline fails and you can rollback manually.
-                    bat "kubectl rollout status deployment/myapp-dev --timeout=120s"
+                    // Wait for the rollout to complete
+                    bat "kubectl --kubeconfig=\"${KUBECONFIG_PATH}\" rollout status deployment/myapp-dev --timeout=120s"
                 }
             }
         }
@@ -80,11 +80,9 @@ pipeline {
             steps {
                 script {
                     echo "Running smoke test against http://localhost:30080/health"
-                    // Give the service a moment after rollout
                     sleep(time: 5, unit: 'SECONDS')
-                    bat """
-                        curl -sf http://localhost:30080/health || exit 1
-                    """
+                    // Using -f to fail silently if the URL is unreachable
+                    bat "curl -sf http://localhost:30080/health || exit 1"
                 }
             }
         }
@@ -99,27 +97,26 @@ pipeline {
                Image : ${IMAGE_NAME}:${IMAGE_TAG}
                App   : http://localhost:30080
                Check revision history with:
-                 kubectl rollout history deployment/myapp-dev
+                 kubectl --kubeconfig="${KUBECONFIG_PATH}" rollout history deployment/myapp-dev
             """
         }
 
         failure {
             echo "❌ Pipeline failed — triggering automatic rollback to previous version"
-            // Roll back to the last known-good revision
-            bat "kubectl rollout undo deployment/myapp-dev"
+            // Added --kubeconfig here as well to ensure rollback works even if deploy failed
+            bat "kubectl --kubeconfig=\"${KUBECONFIG_PATH}\" rollout undo deployment/myapp-dev"
+            
             // Confirm rollback completed
-            bat "kubectl rollout status deployment/myapp-dev --timeout=60s"
+            bat "kubectl --kubeconfig=\"${KUBECONFIG_PATH}\" rollout status deployment/myapp-dev --timeout=60s"
             echo """
             ⏪ Rolled back successfully.
-               To roll back to a specific revision:
-                 kubectl rollout undo deployment/myapp-dev --to-revision=<N>
                To see all revisions:
-                 kubectl rollout history deployment/myapp-dev
+                 kubectl --kubeconfig="${KUBECONFIG_PATH}" rollout history deployment/myapp-dev
             """
         }
 
         always {
-            // Clean up dangling local images to save disk space on your laptop
+            // Clean up dangling local images
             bat "docker image prune -f"
         }
     }
