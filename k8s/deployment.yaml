@@ -1,0 +1,75 @@
+# ── Deployment ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 3
+
+  # Rolling update strategy — replace pods one at a time
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1   # At most 1 pod down during update
+      maxSurge: 1         # At most 1 extra pod spun up during update
+
+  selector:
+    matchLabels:
+      app: myapp
+
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: sehaj07/myapp:latest   # Jenkins will replace 'latest' with BUILD_NUMBER
+          ports:
+            - containerPort: 3000
+
+          # Liveness probe — restarts the container if the app crashes
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Readiness probe — if this fails, K8s stops routing traffic to the
+          # pod AND halts the rolling update, preventing a bad deploy from
+          # spreading. This is how automatic rollback is triggered.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 2
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+---
+# ── Service ───────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80           # Service port (internal cluster)
+      targetPort: 3000   # Container port
+      nodePort: 30080    # Access from your Windows host: http://localhost:30080

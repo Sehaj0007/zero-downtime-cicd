@@ -1,0 +1,12 @@
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "description": "Demo app for Jenkins rolling updates & rollback",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
