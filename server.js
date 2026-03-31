@@ -19,6 +19,7 @@ const server = http.createServer((req, res) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MyApp v${VERSION}</title>
+  <div class="badge">UPDATED - LIVE</div>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
