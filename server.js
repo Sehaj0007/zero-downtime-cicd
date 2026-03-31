@@ -6,8 +6,8 @@ const HOSTNAME = require('os').hostname();
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
-    res.writeHead(500);   // Simulate crash — returns HTTP 500
-    res.end('error');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: VERSION }));
     return;
   }
 
