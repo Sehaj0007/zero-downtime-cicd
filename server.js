@@ -69,7 +69,8 @@ const server = http.createServer((req, res) => {
 </head>
 <body>
   <div class="card">
-    <div class="badge">LIVE</div>
+    // <div class="badge">LIVE</div>
+    <div class="badge">DEMO v2</div>
     <h1>MyApp</h1>
     <div class="version">v${VERSION}</div>
     <div class="meta">
